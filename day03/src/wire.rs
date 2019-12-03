@@ -62,7 +62,7 @@ impl Wire {
     }
 
     fn calc_positions(instructions: &Vec<Instruction>) -> Vec<Point> {
-        let mut p = Point { x:0, y: 0};
+        let mut p = Point { x:0, y: 0 };
         instructions.iter()
             .flat_map(|i| {
                 let new_position = p.move_by(i);
@@ -119,7 +119,7 @@ impl FromStr for Instruction {
             _ => Err(())
         }?;
 
-        let distance = distance.parse::<i32>().map_err(|_| ())?;
+        let distance = distance.parse().map_err(|_| ())?;
 
         Ok( Instruction { direction, distance })
     }
@@ -129,8 +129,8 @@ impl FromStr for Wire {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let instructions = s.split(",")
-            .filter_map(|s| Instruction::from_str(s).ok())
+        let instructions  = s.split(",")
+            .filter_map(|s| s.parse().ok())
             .collect();
 
         Ok(Wire::new(instructions))
@@ -151,8 +151,7 @@ mod tests {
     
     #[test]
     fn positions() {
-        let input = "R8,U5,L5,D3";
-        let w : Wire = Wire::from_str("R8,U5,L5,D3").unwrap();
+        let w : Wire = "R8,U5,L5,D3".parse().unwrap();
         let p = w.positions;
         assert_eq!(&p[..14], [
             Point{ x: 0, y: 0},
@@ -174,8 +173,8 @@ mod tests {
     
     #[test]
     fn overlap() {
-        let w1 : Wire = Wire::from_str("R8,U5,L5,D3").unwrap();
-        let w2 : Wire = Wire::from_str("U7,R6,D4,L4").unwrap();
+        let w1 : Wire = "R8,U5,L5,D3".parse().unwrap();
+        let w2 : Wire = "U7,R6,D4,L4".parse().unwrap();
         let overlap = w1.first_overlap(&w2);
         eprintln!("overlap = {:#?}", overlap);
     }
