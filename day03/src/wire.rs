@@ -9,6 +9,8 @@ use nom::bytes::complete::tag;
 use crate::wire::Direction::{Down, Up, Right, Left};
 use std::cmp::{min, max};
 use num::range_step;
+use std::error::Error;
+use std::num::ParseIntError;
 
 #[derive(Debug)]
 pub struct Wire {
@@ -130,7 +132,7 @@ impl FromStr for Wire {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let instructions = s.split(",")
-            .filter_map(|s| Instruction::from_str(s).ok())
+            .filter_map(|s| s.parse().ok())
             .collect();
 
         Ok(Wire::new(instructions))
@@ -142,7 +144,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parse() {
+    fn parse2() {
         let w : Wire = "D99,L45".parse().unwrap();
         assert_eq!(w.instructions.len(), 2);
         assert_eq!(w.instructions.get(0).unwrap().direction, Down);
@@ -232,5 +234,8 @@ mod tests {
         assert_eq!(result, 610);
     }
 }
+
+
+
 
 
