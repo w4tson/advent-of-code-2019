@@ -9,6 +9,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
+    - uses: w4tson/advent-of-code-2019@master 
       with:
           args: cd day01 && cargo test
     
