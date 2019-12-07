@@ -20,12 +20,10 @@ fn main() -> Result<(), Box<&'static str>>{
 }
 
 fn part1(input : &Vec<i32>) -> Result<i32, Box<&str>>{
-    (0..5)
-       
-        .permutations(5)
+    (0..5).permutations(5)
         .map(|setting| try_combo(input, &setting).expect("invalid combo"))
         .max()
-        .ok_or(Box::new("huh"))
+        .ok_or(Box::new("No max value"))
 }
 
 
@@ -35,7 +33,7 @@ fn try_combo(input : &Vec<i32>, settings: &[i32]) -> Result<i32, Box<dyn Error>>
         .fold(0, |output, &phase| {
             let mut p = Program::new(&input);
             p.pipe(phase, move || output);
-            p.exec().expect("asdf")
+            p.exec().expect("Bad result for program")
         });
     
     Ok(output)
@@ -66,8 +64,4 @@ mod tests {
         let result = try_combo(&input, &[1,0,4,3,2]).unwrap();
         assert_eq!(result, 65210);
     }
-
-
-
-    
 }
