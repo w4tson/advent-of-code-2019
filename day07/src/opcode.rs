@@ -1,11 +1,9 @@
 use std::error::Error;
 use crate::opcode::ParameterMode::{Position, Immediate};
-use std::future::Future;
 
 type OpCodes = Vec<i32>;
 
 pub struct Program {
-    alias: String,
     op_codes : OpCodes,
     p : usize,
     output: i32,
@@ -31,8 +29,8 @@ const EQUALS : i32 = 8;
 
 
 impl Program {
-    pub fn new(alias: &str, op_codes: &OpCodes) -> Program {
-        Program { alias: alias.to_string(), p: 0, op_codes: op_codes.clone(), output: 0, input_pipe: (0, None), read_phase: false }
+    pub fn new(op_codes: &OpCodes) -> Program {
+        Program {  p: 0, op_codes: op_codes.clone(), output: 0, input_pipe: (0, None), read_phase: false }
     }
     
      pub fn exec(&mut self) -> Result<i32, Box<dyn Error>> {
@@ -76,7 +74,7 @@ impl Program {
 
     fn output(&mut self) {
         self.output = self.op_codes[self.op_codes[self.p + 1] as usize];
-        println!("{} Ouputting {}", self.alias, self.output);
+        println!("Ouputting {}",  self.output);
         self.p+=2
     }
 
@@ -166,7 +164,7 @@ mod tests {
 
     #[test]
     fn program() {
-        let mut program = Program::new("A", &vec![1002, 4, 3, 4, 33]);
+        let mut program = Program::new(&vec![1002, 4, 3, 4, 33]);
         program.exec();
     }
 }
