@@ -2,7 +2,7 @@ use std::fs::read_to_string;
 use itertools::Itertools;
 
 fn main() {
-    let data : Vec<u32> = read_to_string("input.txt")
+    let data = read_to_string("input.txt")
         .expect("bad input")
         .chars()
         .filter_map(|c| c.to_digit(10))
@@ -12,7 +12,6 @@ fn main() {
     eprintln!("checksum = {:#?}", image.checksum());
 
     image.preview();
-    
 }
 
 struct Image {
