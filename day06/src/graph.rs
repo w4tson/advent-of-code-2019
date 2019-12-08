@@ -68,7 +68,7 @@ impl <N : PartialEq + Debug> Graph<N> {
             .flat_map(|edge| {
                 self.nodes.iter()
                     .enumerate()
-                    .filter_map(move |(node_index, n)| {
+                    .filter_map(move |(node_index, _n)| {
                         self.edges(node_index).filter(|&e| e == edge).nth(0).map(|_| node_index)
                     })
             });
