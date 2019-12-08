@@ -1,5 +1,4 @@
 use std::fmt::Debug;
-use std::slice::Iter;
 
 pub struct Graph<T> {
     nodes: Vec<NodeData<T>>,
@@ -50,55 +49,11 @@ impl <N : PartialEq + Debug> Graph<N> {
         let first_outgoing_edge = self.nodes[source].out;
         Successors { graph: self, current_edge_index: first_outgoing_edge }
     }
-
-    pub fn edges(&self, source: NodeIndex) -> Edges<N> {
-        let first_outgoing_edge = self.nodes[source].out;
-        Edges { graph: self, current_edge_index: first_outgoing_edge }
-    }
     
     pub fn find_node(&self, node: &N) -> Option<NodeIndex> {
         self.nodes.iter().enumerate().filter_map(|(i,n)| if *node == n.node { Some(i as NodeIndex) } else { None }).nth(0)
     }
-    
-    pub fn linked_nodes(&self, source: NodeIndex) -> Vec<&NodeData<N>> {
-        let inbound = self.edges.iter()
-            .filter(|&edge| {
-                edge.target == source
-            })
-            .flat_map(|edge| {
-                self.nodes.iter()
-                    .enumerate()
-                    .filter_map(move |(node_index, _n)| {
-                        self.edges(node_index).filter(|&e| e == edge).nth(0).map(|_| node_index)
-                    })
-            });
-        self.successors(source)
-            .chain(inbound)
-            .map(|node_index| &self.nodes[node_index])
-            .collect::<Vec<_>>()
-    }
 }
-
-pub struct Edges<'graph, T> {
-    graph: &'graph Graph<T>,
-    current_edge_index: Option<EdgeIndex>,
-}
-
-impl<'graph, T> Iterator for Edges<'graph, T> {
-    type Item = &'graph EdgeData;
-
-    fn next(&mut self) -> Option<&'graph EdgeData> {
-        match self.current_edge_index {
-            None => None,
-            Some(edge_num) => {
-                let edge = &self.graph.edges[edge_num];
-                self.current_edge_index = edge.next_edge;
-                Some(edge)
-            }
-        }
-    }
-}
- 
 
 pub struct Successors<'graph, T> {
     graph: &'graph Graph<T>,

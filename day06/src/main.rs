@@ -15,6 +15,7 @@ fn main() {
 
     let graph: Graph<String> = input.parse().expect("Not a graph");
     
+    //no longer works after part2 since the directionality was flipped to make back tracking easy 
     let orbits = total_orbits(&graph);
     eprintln!("orbits = {:#?}", orbits);
 
@@ -152,17 +153,6 @@ I)SAN";
     fn test2() {
         let test_graph: Graph<String> = INPUT2.parse().expect("Not a graph");
         let total_orbits = total_orbits(&test_graph);
-    }
-    
-    #[test]
-    fn linked_nodes() {
-        let graph: Graph<String> = INPUT2.parse().expect("Not a graph");
-        let you = graph.find_node(&"YOU".to_string()).expect("YOU not found");
-
-        let all = graph.linked_nodes(you);
-        for node in all {
-            eprintln!("node = {:#?}", node);
-        }
     }
     
     #[test]
