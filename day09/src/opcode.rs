@@ -54,7 +54,7 @@ impl Program {
                 acc
             });
         
-        Program {  p: 0, op_codes, output: 0, input:1,  base_offset: 0, memory }
+        Program {  p: 0, op_codes, output: 0, input:2,  base_offset: 0, memory }
     }
     
      pub fn exec(&mut self) -> Result<i64, Box<dyn Error>> {
@@ -147,12 +147,7 @@ impl Program {
 
     fn binary_op<F>(&mut self, f: F)
         where F: Fn(i64, i64) -> i64 {
-//        let result_reg = self.memory[&(self.p+3)] as usize;
-//        self.memory.insert(result_reg, f(self.param1(), self.param2()));
-
-
         self.update_param(f(self.param1(), self.param2()), 3);
-        
         self.p+=4;
     }
 
@@ -209,13 +204,6 @@ mod tests {
         assert_eq!(op1, Position);
         assert_eq!(op2, Immediate);
         assert_eq!(op3, Position);
-
-        let output  = Program::decode(21108);
-        eprintln!("output = {:#?}", output);
-        let (code, op1, op2, op3) = output;
-        
-        
-        
     }
 
     #[test]
