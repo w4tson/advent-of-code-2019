@@ -1,18 +1,27 @@
 use std::str::FromStr;
 use itertools::Itertools;
+use std::fmt::{Display, Formatter, Error};
 
 type Position = (i32, i32, i32);
 type Velocity = (i32, i32, i32);
 
-const test_input : &str = "<x=-1, y=0, z=2>
+const TEST_INPUT: &str = "<x=-1, y=0, z=2>
 <x=2, y=-10, z=-7>
 <x=4, y=-8, z=8>
 <x=3, y=5, z=-1>";
 
+const PUZZLE_INPUT: &str =  "<x=12, y=0, z=-15>
+<x=-8, y=-5, z=-10>
+<x=7, y=-17, z=1>
+<x=2, y=-11, z=-6>";
+
 fn main() {
+    let mut space : Space = PUZZLE_INPUT.parse().unwrap();
+    space.tick_for(1000);
+    eprintln!("space.total_energy() = {:#?}", space.total_energy());
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 struct Moon {
     id: usize,
     position: Position,
@@ -40,47 +49,58 @@ impl Moon {
         self.position.2 += self.velocity.2;
     }
 
-    pub fn kinetic_energy(&self) -> i32 {
-        self.velocity.0.abs() + self.velocity.1.abs() + self.velocity.2.abs()
+    pub fn  kinetic_energy(&self) -> i32 {
+        let k = self.velocity.0.abs() + self.velocity.1.abs() + self.velocity.2.abs();
+        eprintln!("k = {:#?}", k);
+        k
     }
 
     pub fn potential_energy(&self) -> i32 {
         self.position.0.abs() + self.position.1.abs() + self.position.2.abs()
     }
+    
+    pub fn energy(&self) -> i32 {
+        self.potential_energy() * self.kinetic_energy()
+    }
 
     fn calc_gravity(a: i32, b: i32) -> i32 {
-        if a < b { -1 } else if a > b { 1 } else { 0 }
+        if a < b { 1 } else if a > b { -1 } else { 0 }
     }
 }
 
 
 impl Space {
     pub fn tick_for(&mut self, n: usize) {
-        (0..n).for_each(|_| self.tick())
+        eprintln!("After 0" );
+        self.moons.iter().for_each(|moon| eprintln!("{}", moon));
+        (1..=n).for_each(|step| {
+        
+            self.tick();
+            eprintln!("After {}", step );
+            self.moons.iter().for_each(|moon| eprintln!("{}", moon));
+        })
     }
 
-    pub fn tick(&mut self) {
-        (0..self.moons.len()).combinations(2).for_each(|moon_tuple|{
+    fn tick(&mut self) {
+        let other_moons = self.moons.clone();
+        (0..self.moons.len()).combinations(2).for_each(| mut moon_tuple|{
 
-            let mut moon1 = &mut self.moons[moon_tuple[0]];
-            let moon2 =  &self.moons[moon_tuple[1]];
+            let  moon1 = &mut self.moons[moon_tuple[0]];
+            let moon2 = other_moons.iter().find(|moon| moon.id == moon_tuple[1]).unwrap();
+                
             moon1.apply_gravity(&moon2);
-//            moon2.apply_gravity(&moon1);
+
+            let moon1 = other_moons.iter().find(|moon| moon.id == moon_tuple[0]).unwrap();
+            let moon2 = &mut self.moons[moon_tuple[1]];
+
+            moon2.apply_gravity(&moon1);
         });
 
         &self.moons.iter_mut().for_each(|moon| moon.apply_velocity());
     }
-
-    pub fn kinetic_energy(&self) -> i32 {
-        self.moons.iter().map(|moon| moon.kinetic_energy()).sum()
-    }
-
-    pub fn potential_energy(&self) -> i32 {
-        self.moons.iter().map(|moon| moon.kinetic_energy()).sum()
-    }
-
+    
     pub fn total_energy(&self) -> i32 {
-        self.kinetic_energy() + self.potential_energy()
+        self.moons.iter().map(|moon| moon.energy()).sum()
     }
 }
 
@@ -88,7 +108,7 @@ impl FromStr for Space {
     type Err = ();
 
     fn from_str(input: &str) -> Result<Self, Self::Err> {
-        let moons = input
+        let moons = PUZZLE_INPUT
             .lines()
             .enumerate()
             .map(|(i, s)| parse(i, s))
@@ -108,10 +128,31 @@ fn parse(id: usize, line: &str) -> Moon {
             let s = &s[2..].to_string();
             s.parse::<i32>().unwrap()
         })
-        .inspect(|x| eprintln!("x = {:#?}", &x))
         .collect::<Vec<i32>>();
-    eprintln!("nums = {:#?}", n);
     Moon { id, position: (n[0], n[1], n[2]), velocity: (0, 0, 0) }
+}
+
+impl Display for Space {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        for moon in &self.moons {
+            writeln!(f, "{}", moon);
+        }
+        
+        Ok(())
+    }
+}
+
+impl Display for Moon {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        write!(f, "pos=<x={:2}, y={:2}, z={:2}>, vel=<x={:2}, y={:2}, z={:2}>", 
+                 self.position.0,
+                 self.position.1,
+                 self.position.2,
+                 self.velocity.0,
+                 self.velocity.1,
+                 self.velocity.2,
+        )
+    }
 }
 
 
@@ -121,19 +162,26 @@ mod tests {
 
     #[test]
     fn test() {
-        let space : Space = test_input.parse().unwrap();
+        let space : Space = TEST_INPUT.parse().unwrap();
         eprintln!("space = {:#?}", space);
     }
 
     #[test]
     fn total_energy() {
-        let space : Space = test_input.parse().unwrap();
-        eprintln!("energy = {:#?}", space.total_energy());
+        let mut space : Space = TEST_INPUT.parse().unwrap();
+        space.tick_for(10);
+        assert_eq!(space.total_energy(), 179);
     }
 
     #[test]
-    fn combos() {
-        let x = vec![1,2,3,4,5];
-//        x.iter().combinations(2)
+    fn test2() {
+        let input2 = "<x=-8, y=-10, z=0>
+<x=5, y=5, z=10>
+<x=2, y=-7, z=3>
+<x=9, y=-8, z=-3>";
+
+        let mut space : Space = input2.parse().unwrap();
+        space.tick_for(100);
+        assert_eq!(space.total_energy(), 1940);
     }
 }
