@@ -1,18 +1,18 @@
 use std::error::Error;
 use crate::opcode::ParameterMode::{Position, Immediate, Relative};
 use std::collections::HashMap;
+use std::fmt::Debug;
 
 type OpCodes = Vec<i64>;
 
-pub struct Program {
+pub struct Program<S> {
     op_codes : OpCodes,
     p : usize,
-    output: i64,
-    input: i64, 
     base_offset: i64,
     memory: HashMap<usize, i64>,
-    input_fn: Option<Box<dyn Fn() -> i64>>,
-    output_fn: Option<Box<dyn FnMut(i64) -> ()>>,
+    state: S,
+    input_fn: Option<Box<dyn Fn(&S) -> i64>>,
+    output_fn: Option<Box<dyn Fn(&S, i64) -> S>>,
 }
 
 #[derive(PartialEq, Debug)]
@@ -45,8 +45,8 @@ const EQUALS : i64 = 8;
 const ADJUST_BASE_OFFSET : i64 = 9;
 
 
-impl Program {
-    pub fn new(op_codes: &OpCodes) -> Program {
+impl <S: Default + Debug> Program<S> {
+    pub fn new(op_codes: &OpCodes) -> Program<S> {
         let op_codes = op_codes.clone();
         let memory : HashMap<usize,i64> = op_codes.iter()
             .enumerate()
@@ -55,21 +55,31 @@ impl Program {
                 acc.entry(i).or_insert(*op_code);
                 acc
             });
-        
-        Program {  p: 0, op_codes, output: 0, input:2,  base_offset: 0, memory, input_fn: None, output_fn: None }
+
+        let state = S::default();
+
+        Program {
+            p: 0,
+            op_codes,
+            memory,
+            state,
+            base_offset: 0,
+            input_fn: None,
+            output_fn: None
+        }
     }
 
-    pub fn input_supplier<F>(&mut self, f: F )
-        where F: Fn() -> i64 + 'static {
+    pub fn set_input_fn<F>(&mut self, f: F )
+        where F: Fn(&S) -> i64 + 'static {
         self.input_fn = Some(Box::new(f));
     }
 
-    pub fn output_fn<F>(&mut self, f: F )
-        where F: FnMut(i64) -> () + 'static {
+    pub fn set_output_fn<F>(&mut self, f: F )
+        where F: Fn(&S, i64) -> S + 'static {
         self.output_fn = Some(Box::new(f));
     }
     
-     pub fn exec(&mut self) -> Result<i64, Box<dyn Error>> {
+     pub fn exec(&mut self) -> Result<&S, Box<dyn Error>> {
         while self.next_code() != HALT {
 
             let code = self.next_code();
@@ -88,16 +98,22 @@ impl Program {
             }
         }
 
-        Ok(self.output)
+        Ok(&self.state)
     }
     
     fn input(&mut self) {
-        println!("input");
         if let Some(input_supplier) = &self.input_fn {
-            self.update_param(input_supplier(), 1);
-
+            self.update_param(input_supplier(&self.state), 1);
         }
         self.p+=2;
+    }
+
+    fn output(&mut self) {
+        if let Some(f) = &self.output_fn {
+            let output_value = self.param1();
+            self.state = f(&mut self.state, output_value);
+        }
+        self.p+=2
     }
     
     fn update_param(&mut self, value: i64, param: usize) {
@@ -115,15 +131,6 @@ impl Program {
             Relative => self.memory.insert((self.base_offset + literal_value) as usize, value),
             _ => panic!("Problem updating param1, unknown param mode")
         };
-    }
-
-    fn output(&mut self) {
-        self.output = self.param1();
-        if let Some(f) = &self.output_fn {
-            f(self.param1());
-        }
-        println!("Outputting {}",  self.output);
-        self.p+=2
     }
     
     fn adj_base_offset(&mut self) {

@@ -7,10 +7,11 @@ use itertools::Itertools;
 
 
 
-type Coord = (usize, usize);
+type Coord = (i32, i32);
 
 pub mod opcode;
 
+#[derive(Debug,Clone)]
 enum Direction {
     North,
     South,
@@ -19,7 +20,7 @@ enum Direction {
 }
 
 impl Direction {
-    pub fn rotateClockwise(&self) -> Direction {
+    pub fn rotate_clockwise(&self) -> Direction {
         match self {
             North => East,
             East=> South,
@@ -28,7 +29,7 @@ impl Direction {
         }
     }
 
-    pub fn rotateAntiClockwise(&self) -> Direction {
+    pub fn rotate_anti_clockwise(&self) -> Direction {
         match self {
             North => West,
             East=> North,
@@ -45,46 +46,83 @@ fn main() {
         .map(|x| x.parse::<i64>().unwrap())
         .collect();
 
-    let mut canvas: HashMap<Coord, i64> = HashMap::new();
-    canvas.insert((0,0), 0);
-    let mut position = (0,0);
-    let mut p = Program::new(&op_codes);
+    let mut p : Program<State> = Program::new(&op_codes);
 
-    p.input_supplier(move || {
-        canvas[&position]
+    p.set_input_fn(|state| {
+        *state.canvas.get(&state.position)
+            .unwrap_or(&0)
     });
 
-    let mut count = 0;
+    p.set_output_fn(|state,output| {
+        let mut state = state.clone();
+        let position = state.position;
+        if state.count % 2 == 0 {
+            state.canvas.entry(state.position).insert(output);
+            state.seen.push(state.position);
 
-    let mut facing = North;
-
-    let mut seen : Vec<(usize, usize)> = vec![];
-
-    p.output_fn(move |output| {
-        //seen.push(position);
-        if count % 2 == 0 {
-            canvas.entry(position).insert(output);
         } else {
             if output == 0 {
-                facing = facing.rotateAntiClockwise();
+                state.facing = state.facing.rotate_anti_clockwise()
             } else {
-                facing = facing.rotateClockwise();
-            }
-            match facing {
-                North => position = (position.0, position.1-1),
-                East => position = (position.0+1, position.1),
-                South => position = (position.0, position.1+1),
-                West => position = (position.0-1, position.1),
-            }
-        }
+                state.facing = state.facing.rotate_clockwise()
+            };
 
-        count += 1;
+            state.position = match state.facing {
+                North =>  (position.0, position.1-1),
+                East =>  (position.0+1, position.1),
+                South =>  (position.0, position.1+1),
+                West =>  (position.0-1, position.1),
+            };
+
+        }
+        state.count += 1;
+        state
     });
 
-    p.exec();
+    let final_state = p.exec().expect("bad");
 
-    let count = seen.iter().unique().count();
+    eprintln!("unique locations painted = {}", final_state.seen.iter().unique().count());
 
-    eprintln!("count = {:#?}", count);
+    final_state.write();
 
+}
+
+#[derive(Debug,Clone)]
+struct State {
+    canvas: HashMap<Coord, i64>,
+    position: Coord,
+    count: usize,
+    facing: Direction,
+    seen: Vec<Coord>
+}
+
+impl State {
+    pub fn write(&self) {
+        let (min_x,_) = self.canvas.keys().min_by_key(|(x, _)| *x).unwrap();
+        let (max_x,_) = self.canvas.keys().max_by_key(|(x, _)| *x).unwrap();
+
+        let (_, min_y) = self.canvas.keys().min_by_key(|( _, y)| *y).unwrap();
+        let (_, max_y) = self.canvas.keys().max_by_key(|( _, y)| *y).unwrap();
+
+        for y in *min_y..=*max_y {
+            for x in *min_x..=*max_x {
+                match self.canvas.get(&(x,y)).unwrap_or(&0) {
+                    0 => print!(" "),
+                    _ => print!("#")
+                }
+            }
+                println!();
+        }
+    }
+}
+
+impl Default for State {
+    fn default() -> Self {
+        let mut canvas: HashMap<Coord, i64> = HashMap::new();
+        canvas.insert((0,0), 1);
+
+        State {
+           canvas, position: (0,0), count: 0 , facing: North, seen: vec![]
+        }
+    }
 }
