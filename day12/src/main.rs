@@ -12,7 +12,7 @@ const test_input : &str = "<x=-1, y=0, z=2>
 fn main() {
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Moon {
     id: usize,
     position: Position,
@@ -60,13 +60,13 @@ impl Space {
     }
 
     pub fn tick(&mut self) {
-        for moon_tuple in &self.moons.iter().combinations(2).iter() {
+        (0..self.moons.len()).combinations(2).for_each(|moon_tuple|{
 
-            let moon1 = moon_tuple[0];
-            let moon2 = moon_tuple[1];
-            moon1.apply_gravity(moon2);
-            moon2.apply_gravity(moon1);
-        }
+            let mut moon1 = &mut self.moons[moon_tuple[0]];
+            let moon2 =  &self.moons[moon_tuple[1]];
+            moon1.apply_gravity(&moon2);
+//            moon2.apply_gravity(&moon1);
+        });
 
         &self.moons.iter_mut().for_each(|moon| moon.apply_velocity());
     }
@@ -129,5 +129,11 @@ mod tests {
     fn total_energy() {
         let space : Space = test_input.parse().unwrap();
         eprintln!("energy = {:#?}", space.total_energy());
+    }
+
+    #[test]
+    fn combos() {
+        let x = vec![1,2,3,4,5];
+//        x.iter().combinations(2)
     }
 }
