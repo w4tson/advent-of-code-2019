@@ -71,21 +71,22 @@ impl Moon {
 
 impl Space {
     pub fn tick_for(&mut self, n: usize) {
-        eprintln!("After 0" );
-        self.moons.iter().for_each(|moon| eprintln!("{}", moon));
+//        eprintln!("After 0" );
+//        self.moons.iter().for_each(|moon| eprintln!("{}", moon));
         (1..=n).for_each(|step| {
         
             self.tick();
-            eprintln!("After {}", step );
-            self.moons.iter().for_each(|moon| eprintln!("{}", moon));
+//            eprintln!("After {}", step );
+//            self.moons.iter().for_each(|moon| eprintln!("{}", moon));
         })
     }
 
     fn tick(&mut self) {
+        let initial : Vec<Moon> = self.moons.clone();
         let other_moons = self.moons.clone();
         (0..self.moons.len()).combinations(2).for_each(| mut moon_tuple|{
 
-            let  moon1 = &mut self.moons[moon_tuple[0]];
+            let moon1 = &mut self.moons[moon_tuple[0]];
             let moon2 = other_moons.iter().find(|moon| moon.id == moon_tuple[1]).unwrap();
                 
             moon1.apply_gravity(&moon2);
@@ -95,9 +96,34 @@ impl Space {
 
             moon2.apply_gravity(&moon1);
         });
+        
+        
 
         &self.moons.iter_mut().for_each(|moon| moon.apply_velocity());
+
+        
     }
+    
+    fn print_positions(&self) {
+        self.moons.iter().for_each(|m1|{
+            eprintln!("{},{},{}",
+                      m1.position.0,
+                      m1.position.1,
+                      m1.position.2 
+            );
+        });
+    }
+    
+    fn print_change_of_position(&self) {
+        self.moons.iter().zip(initial.iter()).take(1).for_each(|(m1, m2)|{
+            eprintln!("{},{},{}",
+                      m1.position.0 - m2.position.0,
+                      m1.position.1 - m2.position.1,
+                      m1.position.2 - m2.position.2
+            );
+        });
+    }
+    
     
     pub fn total_energy(&self) -> i32 {
         self.moons.iter().map(|moon| moon.energy()).sum()
@@ -183,5 +209,11 @@ mod tests {
         let mut space : Space = input2.parse().unwrap();
         space.tick_for(100);
         assert_eq!(space.total_energy(), 1940);
+    }
+
+    #[test]
+    fn part2() {
+        let mut space : Space = TEST_INPUT.parse().unwrap();
+        space.tick_for(2772);
     }
 }
